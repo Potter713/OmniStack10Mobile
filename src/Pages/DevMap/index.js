@@ -1,20 +1,30 @@
 import React, { useEffect, useState } from 'react';
 
-import { StyleSheet, Image, View, Text, TextInput, TouchableOpacity, Keyboard } from 'react-native'
+import { StyleSheet, Image, View, Text, TextInput, TouchableOpacity, Keyboard, AsyncStorage } from 'react-native'
 
 import MapView, { Marker, Callout } from 'react-native-maps';
 
 import { MaterialIcons } from '@expo/vector-icons'
 
-import api from '../services/api'
+import api from '../../services/api'
 
 import { requestPermissionsAsync, getCurrentPositionAsync } from 'expo-location'
 
-function Main({ navigation }) {
+import {
+  Avatar,
+  DevName,
+  DevBio,
+  DevTechs,
+  SearchForm,
+  SearchInput,
+  SearchButton,
+} from './styles'
+
+function DevMap({ navigation }) {
 
   const [devs, setDevs] = useState([]);
 
-  const [ techs, setTechs ] = useState('');
+  const [techs, setTechs] = useState('');
 
   const [currentRegion, setCurrentRegion] = useState(null);
 
@@ -40,6 +50,8 @@ function Main({ navigation }) {
 
   useEffect(() => {
     async function loadInitialPosition() {
+
+      const _id = await AsyncStorage.getItem('@DevMap:_id')
       const { granted } = await requestPermissionsAsync()
 
       if (granted) {
@@ -55,15 +67,29 @@ function Main({ navigation }) {
           latitudeDelta: 0.04,
           longitudeDelta: 0.04
         })
+
+        await api.put(`/devs/${_id}`, {
+          latitude,
+          longitude,
+          type: "system"
+        })
+
+        const response = await api.get('/devs/search', {
+          params: {
+            latitude,
+            longitude,
+            techs
+          }
+        })
+        setDevs(response.data.devs)
+
       }
 
     }
     loadInitialPosition();
   }, [])
 
-  async function loadDevs(techs) {
-
-    setTechs(techs);
+  async function loadDevs() {
 
     const { latitude, longitude } = currentRegion;
 
@@ -81,65 +107,12 @@ function Main({ navigation }) {
     setCurrentRegion(region);
   }
 
-
-
   const styles = StyleSheet.create({
     map: {
       flex: 1
     },
-    avatar: {
-      width: 54,
-      height: 54,
-      borderRadius: 4,
-      borderWidth: 4,
-      borderColor: '#fff'
-    },
     callout: {
       width: 260,
-    },
-    devName: {
-      fontWeight: 'bold',
-      fontSize: 16
-    },
-    devBio: {
-      color: '#666',
-      marginTop: 5
-    },
-    devTechs: {
-      marginTop: 5
-    },
-    searchForm: {
-      position: 'absolute',
-      bottom: keyboardShow ? 255 : 30,
-      left: 12,
-      right: 12,
-      zIndex: 5,
-      flexDirection: 'row'
-    },
-    searchInput: {
-      flex: 1,
-      height: 50,
-      backgroundColor: '#fff',
-      color: '#333',
-      borderRadius: 20,
-      paddingHorizontal: 20,
-      fontSize: 16,
-      shadowColor: '#000',
-      shadowOpacity: 0.2,
-      shadowOffset: {
-        width: 4,
-        height: 4
-      },
-      elevation: 2
-    },
-    loadButton: {
-      width: 50,
-      height: 50,
-      backgroundColor: '#8E4DFF',
-      borderRadius: 25,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: 10
     }
   })
 
@@ -163,21 +136,21 @@ function Main({ navigation }) {
               latitude: dev.location.coordinates[1]
             }}
           >
-            <Image style={styles.avatar} source={{ uri: dev.avatar_url }} />
+            <Avatar source={{ uri: dev.avatar_url }} />
             <Callout onPress={() => {
-              navigation.navigate('Profile', { github_username: dev.github_username })
+              navigation.navigate('Github', { github_username: dev.github_username })
             }}>
               <View style={styles.callout}>
 
-                <Text style={styles.devName}>
+                <DevName>
                   {dev.name}
-                  </Text>
-                <Text style={styles.devBio}>
+                </DevName>
+                <DevBio>
                   {dev.bio}
-                  </Text>
-                <Text style={styles.devTechs}>
+                </DevBio>
+                <DevTechs>
                   {dev.techs.join(', ')}
-                </Text>
+                </DevTechs>
 
               </View>
             </Callout>
@@ -185,26 +158,24 @@ function Main({ navigation }) {
         ))}
       </MapView>
 
-      <View style={styles.searchForm}>
-        <TextInput
-          style={styles.searchInput}
+      <SearchForm keyboard={keyboardShow}>
+        <SearchInput
           placeholder="Buscar devs por techs..."
           placeholderTextColor="#999"
           autoCapitalize="words"
           autoCorrect={false}
           value={techs}
-          onChangeText={ techs => loadDevs(techs)}
+          onChangeText={setTechs}
         />
-        <TouchableOpacity 
-          // onPress={loadDevs} 
-          style={styles.loadButton}
+        <SearchButton
+          onPress={loadDevs}
         >
           <MaterialIcons name="my-location" color="#fff" size={20} />
-        </TouchableOpacity>
-      </View>
+        </SearchButton>
+      </SearchForm>
 
     </>
   )
 }
 
-export default Main;
+export default DevMap;
