@@ -5,7 +5,8 @@ import { StatusBar, YellowBox } from 'react-native'
 import Routes from './src/routes'
 
 YellowBox.ignoreWarnings([
-  'source.uri should not be an empty string'
+  'source.uri should not be an empty string',
+  'Unrecognized WebSocket'
 ]);
 
 export default function App() {

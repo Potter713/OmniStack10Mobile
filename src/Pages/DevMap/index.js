@@ -7,6 +7,7 @@ import MapView, { Marker, Callout } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons'
 
 import api from '../../services/api'
+import { connect, disconnect } from '../../services/socket'
 
 import { requestPermissionsAsync, getCurrentPositionAsync } from 'expo-location'
 
@@ -82,12 +83,19 @@ function DevMap({ navigation }) {
           }
         })
         setDevs(response.data.devs)
-
+        setupWebsocket();
       }
 
     }
     loadInitialPosition();
   }, [])
+
+  function setupWebsocket(){
+    connect(
+      techs
+    );
+  }
+
 
   async function loadDevs() {
 
@@ -101,6 +109,7 @@ function DevMap({ navigation }) {
       }
     })
     setDevs(response.data.devs)
+    setupWebsocket();
   }
 
   function handleRegionChanged(region) {
